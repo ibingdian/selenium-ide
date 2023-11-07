@@ -135,6 +135,7 @@ export default class Playback {
   commands?: CommandShape[]
   playbackTree?: PlaybackTree
   currentExecutingNode?: CommandNode
+  verifications: string[] = []
 
   async init() {
     await this.executor.init({
@@ -458,6 +459,7 @@ export default class Playback {
             message: err.message,
             error: err as Error,
           })
+          this.verifications.push(err.message);
           return await this._handleException(async () => {
             this._setExitCondition(PlaybackStates.FAILED)
             // focibly continuing verify commands
@@ -520,7 +522,7 @@ export default class Playback {
           state: CommandStates.FAILED,
           message: err.message,
           error: err as Error,
-        })
+        });
       } else {
         this[EE].emitCommandStateChange({
           id: command.id,
@@ -633,6 +635,13 @@ export default class Playback {
     })
     this[state].lastSentCommandState = undefined
     this[state].callstack = undefined
+
+    if (this.verifications.length>0){
+      this.verifications = [];
+      // let msg = this.verifications.join(" ; ");
+      // this.verifications = [];
+      // throw new VerificationError(msg);
+    }
   }
 
   async _pause() {

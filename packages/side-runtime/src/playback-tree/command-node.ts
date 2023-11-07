@@ -148,9 +148,10 @@ export class CommandNode {
   ): Promise<unknown> {
     const timeLimit = timeout - Date.now()
     const expirationTimer = setTimeout(() => {
-      throw new Error(
-        `Operation timed out running command ${this.command.command}:${this.command.target}:${this.command.value}`
-      )
+      console.warn(`Operation timed out running command ${this.command.command}:${this.command.target}:${this.command.value}`)
+      // throw new Error(
+      //   `Operation timed out running command ${this.command.command}:${this.command.target}:${this.command.value}`
+      // )
     }, timeLimit)
     try {
       const result = await execute()
@@ -173,20 +174,18 @@ export class CommandNode {
   }
 
   handleTransientError(e: unknown, timeout: number) {
-    const { command, target, value } = this.command
-    const thisCommand = `${command}-${target}-${value}`
+    // const { id,command, target, value ,comment} = this.command
+    // const thisCommand = `${command}-${target}-${value}-${id}-${comment}`
+    const thisCommand = JSON.stringify(this.command)
     const thisErrorMessage = e instanceof Error ? e.message : ''
-    const thisTransientError = `${thisCommand}-${thisErrorMessage}`
+    // const thisTransientError = `${thisCommand}-${thisErrorMessage}`
+    const thisTransientError = `${thisCommand}`
     const lastTransientError = this.transientError
     const isNewErrorMessage = lastTransientError !== thisTransientError
     const notRetrying = Date.now() > timeout
     if (isNewErrorMessage) {
       this.transientError = thisTransientError
-      console.warn(
-        'Unexpected error occured during command:',
-        thisCommand,
-        notRetrying ? '' : 'retrying...'
-      )
+      console.warn('Unexpected error occured during command:', thisCommand, notRetrying ? '' : 'retrying...')
       if (thisErrorMessage) {
         console.error(thisErrorMessage)
       }
@@ -194,6 +193,9 @@ export class CommandNode {
 
     if (notRetrying) {
       console.error('Command failure:', thisCommand)
+      if (e instanceof Error){
+        e.message = e.message + " #@# "+`${thisCommand}`
+      }
       throw e
     }
   }

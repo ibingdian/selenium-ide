@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "downlevelIteration": true,
     "strictNullChecks": false,
     "inlineSourceMap": true,
     "inlineSources": true,

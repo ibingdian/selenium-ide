@@ -7,7 +7,7 @@
   "homepage": "http://github.com/SeleniumHQ/selenium-ide",
   "license": "Apache-2.0",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --outDir dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo node_modules",
     "watch": "tsc --watch"
   },

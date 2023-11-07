@@ -63,7 +63,9 @@ const buildRunners = ({ configuration, logger }: HoistedThings) => {
       implicitWait: configuration.timeout,
       server: configuration.server,
     })
+
     await playbackUntilComplete()
+
     function playbackUntilComplete() {
       // eslint-disable-next-line no-async-promise-executor
       return new Promise(async (resolve, reject) => {
@@ -122,10 +124,16 @@ const buildRunners = ({ configuration, logger }: HoistedThings) => {
                   }`
                 )
                 if (state !== 'finished') {
-                  return onComplete(
-                    playback['state'].lastSentCommandState?.error ||
-                      new Error('Unknown error')
-                  )
+                  let msg = playback.verifications.join(" \n ");
+                  let err = playback['state'].lastSentCommandState?.error;
+                  if (err === undefined ){
+                    err = new Error();
+                  }
+                  let err_msg = err.message
+                  msg = err_msg +" \n "+msg
+                  err.message = msg;
+                  err.stack = undefined
+                  return onComplete(err)
                 }
                 return onComplete(null)
             }
@@ -143,7 +151,8 @@ const buildRunners = ({ configuration, logger }: HoistedThings) => {
             const niceString = [cmd.command, cmd.target, cmd.value]
               .filter((v) => !!v)
               .join('|')
-            logger.debug(`${state} ${niceString}`)
+            const comment = cmd.comment == null ? " ": "-----注释-----"+cmd.comment;
+            logger.debug(`${state} ${niceString} ${comment}`)
             if (message) {
               logger.error(message)
             }

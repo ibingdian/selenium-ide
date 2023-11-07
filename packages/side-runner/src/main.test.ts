@@ -14,8 +14,9 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
+import * as path from 'path';
 import each from 'jest-each'
+
 import fs from 'fs'
 import { globSync } from 'glob'
 import { createLogger, format, transports } from 'winston'
@@ -30,6 +31,8 @@ import {
 } from '@seleniumhq/side-runtime'
 
 const metadata = require('../package.json')
+// 获取操作系统的文件分隔符
+const fileSeparator = path.sep;
 
 process.title = metadata.name
 
@@ -65,9 +68,9 @@ const logger = createLogger({
   ],
 })
 
-const projectTitle = 'Running project $name'
-const suiteTitle = 'Running suite $name'
-const testTitle = 'Running test $name'
+const projectTitle = '$name'
+const suiteTitle = '正在运行的测试套件：$name'
+const testTitle = '$name'
 
 const allMatchingProjects: Project[] = [
   ...configuration.projects.reduce((projects, project) => {
@@ -78,7 +81,10 @@ const allMatchingProjects: Project[] = [
   }, new Set<string>()),
 ].map((p) => {
   const project = JSON.parse(fs.readFileSync(p, 'utf8'))
-  project.path = p
+  project.path = p;
+  let ns = p.split(fileSeparator);
+  let n = ns[ns.length-1];
+  project.name=n;
   return project
 })
 
@@ -121,6 +127,11 @@ const factoryParams = {
 }
 const register = buildRegister(factoryParams)
 const runners = buildRunners(factoryParams)
+
+
+
+
+
 each(projects).describe(projectTitle, (project: Project) => {
   try {
     const pluginPaths = correctPluginPaths(project.path, project?.plugins ?? [])
@@ -137,6 +148,23 @@ each(projects).describe(projectTitle, (project: Project) => {
     }
     beforeAll(runHook('onBeforePlayAll'))
     afterAll(runHook('onAfterPlayAll'))
+    expect.extend({
+      toAssertThrow(received){
+        if (received instanceof Error){
+          received.stack=undefined;
+          return {
+
+            message:()=>`#####${received.message}####`,
+            pass: false,
+          }
+        }else {
+          return {
+            message: () => `----success----`,
+            pass: true,
+          };
+        }
+      }
+    });
     const suites = project.suites.filter(
       (suite) =>
         suite.tests.length && new RegExp(configuration.filter).test(suite.name)
@@ -147,11 +175,17 @@ each(projects).describe(projectTitle, (project: Project) => {
         const tests = suite.tests.map((tID) => register.test(project, tID))
 
         const testExecutor = each(tests)
-        const testMethod = isParallel
-          ? testExecutor.test.concurrent
-          : testExecutor.test
+        const testMethod = isParallel ? testExecutor.test.concurrent  : testExecutor.test
         testMethod(testTitle, async (test: TestShape) => {
+          // try {
+          //   await runners.test(project, test)
+          // }catch (e){
+          //   expect(e).toAssertThrow();
+          // }finally {
+          //   console.log("--LY--")
+          // }
           await runners.test(project, test)
+
         })
       })
     } else {
@@ -167,13 +201,44 @@ each(projects).describe(projectTitle, (project: Project) => {
           `No suites or tests found in project ${project.name} matching filter ${configuration.filter}, unable to test!`
         )
       }
+
+      // describe('My Test Suite'+project.name, () => {
+      //   // Your test cases go here
+      //   const testExecutor = each(tests)
+      //   testExecutor.test(testTitle, async (test: TestShape) => {
+      //     try {
+      //       await runners.test(project, test)
+      //     }catch (e){
+      //       throw e;
+      //     }finally {
+      //       console.log("--LY-------------")
+      //     }
+      //   })
+      // });
       const testExecutor = each(tests)
       testExecutor.test(testTitle, async (test: TestShape) => {
-        await runners.test(project, test)
+        try {
+          await runners.test(project, test)
+        }catch (e){
+          throw e;
+        }finally {
+          console.log("--LY-------------")
+        }
       })
+
+
     }
   } catch (e) {
     console.warn('Failed to run project ' + project.name)
     console.error(e)
   }
 })
+
+
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toAssertThrow(): R;
+    }
+  }
+}
