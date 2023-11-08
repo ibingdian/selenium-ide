@@ -41,7 +41,10 @@
     "@types/js-yaml": "^4.0.5",
     "@types/lodash": "^4.14.199",
     "@types/resolve-bin": "^0.4.1",
-    "@types/semver": "^7.5.0"
-
+    "@types/semver": "^7.5.0",
+    "ejs": "^3.1.9",
+    "jest-html-reporters": "^3.1.4",
+    "sample-html-reporter": "link:D:/ly/ws_node/sample-html-reporter",
+    "jest-junit": "^16.0.0"
   }
 }
